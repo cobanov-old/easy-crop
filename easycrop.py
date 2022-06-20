@@ -1,15 +1,32 @@
 import os
 import time
+import pathlib
+import argparse
 import warnings
 import numpy as np
 from PIL import Image
 from multiprocessing import Pool
 from scipy.cluster.vq import kmeans2
 
+
 warnings.simplefilter("ignore")
 
-thumbnail_size = 200
-image_dir = "images2"
+
+def parse_argument():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "inputfolder", metavar="INPUT_FOLDER", help="Input image folder"
+    )
+    parser.add_argument(
+        "outputfolder", metavar="OUTPUT_FOLDER", help="Output image folder"
+    )
+    parser.add_argument(
+        "--thumb", dest="thumbnail_size", type=int, default=200, help="Crop height"
+    )
+    return parser.parse_args()
+
+
+options = parse_argument()
 
 
 def calculate_kmeans(thumb):
@@ -40,13 +57,13 @@ def flatten(data, maj_size, min_size):
 def process(path):
 
     if path.endswith(".jpg") or path.endswith(".jpeg") or path.endswith(".png"):
-        img = Image.open(os.path.join(image_dir, path))
+        img = Image.open(os.path.join(options.inputfolder, path))
         width, height = img.size
         is_horizontal = width > height
         image_size = min(width, height)
 
         thumb = img.copy()
-        thumb.thumbnail((thumbnail_size, thumbnail_size))
+        thumb.thumbnail((options.thumbnail_size, options.thumbnail_size))
         twidth, theight = thumb.size
         min_size, major_size = min(twidth, theight), max(twidth, theight)
 
@@ -57,7 +74,7 @@ def process(path):
 
         # rescaling
         offset = int(thumb_offset * (width / float(twidth)))
-        # correct the offset if it's out of bounds
+
         if offset + image_size > width:
             offset = width - image_size
 
@@ -67,21 +84,24 @@ def process(path):
         else:
             crop = img.crop((0, offset, image_size, offset + image_size))
 
-        crop.save(f"./outputs/{path}_out.jpg")
+        crop.save(f"{options.outputfolder}/{pathlib.Path(path).stem}_out.jpg")
 
     else:
         return None
 
 
 def main():
-    start = time.time()
-    if not os.path.exists("outputs"):
-        os.makedirs("outputs")
+
+    if not os.path.exists(options.outputfolder):
+        os.makedirs(options.outputfolder, exist_ok=True)
+
     pool = Pool()  # Create a multiprocessing Pool
-    pool.map(process, os.listdir(image_dir))
-    end = time.time()
-    print(f"Time: {end - start}")
+    paths = os.listdir(options.inputfolder)
+    pool.map(process, paths)
 
 
 if __name__ == "__main__":
+    start = time.time()
     main()
+    end = time.time()
+    print(f"Time taken: {end - start}")
