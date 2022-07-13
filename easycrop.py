@@ -4,6 +4,7 @@ import pathlib
 import argparse
 import warnings
 import numpy as np
+import pandas as pd
 from PIL import Image
 from multiprocessing import Pool
 from scipy.cluster.vq import kmeans2
@@ -97,6 +98,8 @@ def main():
 
     pool = Pool()  # Create a multiprocessing Pool
     paths = os.listdir(options.inputfolder)
+    # paths = pd.read_csv("./all_images.csv")["image_path"].tolist()
+
     pool.map(process, paths)
 
 
